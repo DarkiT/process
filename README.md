@@ -1,5 +1,10 @@
 # Process 进程管理库
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/darkit/process.svg)](https://pkg.go.dev/github.com/darkit/process)
+[![Go Report Card](https://goreportcard.com/badge/github.com/darkit/process)](https://goreportcard.com/report/github.com/darkit/process)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/darkit/process/blob/master/LICENSE)
+
+
 Process 是一个用 Go 语言编写的轻量级进程管理库，提供了完整的进程生命周期管理功能，支持自动重启、日志管理、信号控制等特性。同时提供了 Web API 扩展，可以轻松集成到 HTTP 或 Gin 等 Web 框架中。
 
 ## 特性
@@ -188,29 +193,6 @@ func main() {
 }
 ```
 
-## 贡献
-
-欢迎提交问题和 Pull Request。在提交 PR 之前，请确保：
-
-1. 更新测试
-2. 更新文档
-3. 遵循代码规范
-4. 提供必要的测试用例
-
 ## 许可证
 
 本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
-
-## 作者
-
-- DarkIT Team 
-- Email: <your-email@example.com>
-- Website: https://your-website.com
-
-## 更新日志
-
-### v1.0.0 (2024-04-20)
-
-- 初始版本发布
-- 支持基本的进程管理功能
-- 添加 Web API 扩展支持
