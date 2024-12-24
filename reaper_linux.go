@@ -16,14 +16,6 @@ type Config struct {
 
 var debug bool = false
 
-func EnableDebug() {
-	debug = true
-}
-
-func DisableDebug() {
-	debug = false
-}
-
 func sigChildHandler(notifications chan os.Signal) {
 	sigs := make(chan os.Signal, 3)
 	signal.Notify(sigs, syscall.SIGCHLD)
@@ -47,9 +39,6 @@ func reapChildren(config Config) {
 
 	for {
 		sig := <-notifications
-		if debug {
-			fmt.Printf(" - Received signal %v\n", sig)
-		}
 		for {
 			var wstatus syscall.WaitStatus
 
@@ -60,10 +49,6 @@ func reapChildren(config Config) {
 
 			if syscall.ECHILD == err {
 				break
-			}
-
-			if debug {
-				fmt.Printf(" - Grim reaper cleanup: pid=%d, wstatus=%+v\n", pid, wstatus)
 			}
 		}
 	}
@@ -85,9 +70,6 @@ func Start(config Config) {
 	if !config.DisablePid1Check {
 		mypid := os.Getpid()
 		if 1 != mypid {
-			if debug {
-				fmt.Printf(" - Grim reaper disabled, pid not 1\n")
-			}
 			return
 		}
 	}
