@@ -7,7 +7,7 @@ import (
 
 type StdLogger struct {
 	NullLogger
-	//logEventEmitter LogEventEmitter
+	// logEventEmitter LogEventEmitter
 	writer io.Writer
 }
 
@@ -16,6 +16,7 @@ func NewStdoutLogger() *StdLogger {
 		writer: os.Stdout,
 	}
 }
+
 func NewStderrLogger() *StdLogger {
 	return &StdLogger{
 		writer: os.Stderr,

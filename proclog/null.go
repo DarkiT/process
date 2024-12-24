@@ -6,7 +6,7 @@ import (
 )
 
 type NullLogger struct {
-	//logEventEmitter LogEventEmitter
+	// logEventEmitter LogEventEmitter
 }
 
 func NewNullLogger() *NullLogger {

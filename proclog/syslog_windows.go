@@ -6,7 +6,6 @@ type SysLogger struct {
 
 // NewSysLogger 获取系统syslog的对象
 func NewSysLogger(_ string, _ map[string]string) *SysLogger {
-
 	logger := &SysLogger{}
 	return logger
 }
@@ -15,7 +14,6 @@ func NewSysLogger(_ string, _ map[string]string) *SysLogger {
 func NewRemoteSysLogger(_ string, _ string, _ map[string]string) *SysLogger {
 	logger := &SysLogger{}
 	return logger
-
 }
 
 func (that *SysLogger) Write(_ []byte) (int, error) {

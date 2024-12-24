@@ -2,9 +2,10 @@ package process
 
 import (
 	"fmt"
-	"github.com/darkit/process/utils"
 	"syscall"
 	"time"
+
+	"github.com/darkit/process/utils"
 )
 
 // Info 进程的运行状态

@@ -10,7 +10,7 @@ import (
 
 // FileLogger 写入stdout/stderr到文件
 type FileLogger struct {
-	//文件名
+	// 文件名
 	name string
 	// 日志最大长度
 	maxSize int64
@@ -18,9 +18,9 @@ type FileLogger struct {
 	backups int
 	// 每个文件的长度
 	fileSize int64
-	//文件句柄
+	// 文件句柄
 	file *os.File
-	//logEventEmitter LogEventEmitter
+	// logEventEmitter LogEventEmitter
 	locker sync.Locker
 }
 
@@ -43,11 +43,10 @@ func (that *FileLogger) Write(p []byte) (int, error) {
 	defer that.locker.Unlock()
 
 	n, err := that.file.Write(p)
-
 	if err != nil {
 		return n, err
 	}
-	//that.logEventEmitter.emitLogEvent(string(p))
+	// that.logEventEmitter.emitLogEvent(string(p))
 	that.fileSize += int64(n)
 	if that.fileSize >= that.maxSize {
 		fileInfo, errStat := os.Stat(that.name)
@@ -208,7 +207,6 @@ func (that *FileLogger) ReadTailLog(offset int64, length int64) (string, int64, 
 		return "", offset, false, err
 	}
 	return string(b[:n]), offset + int64(n), false, nil
-
 }
 
 // openFile 打开要写入的日志文件，如果目录不存在则自动创建
@@ -224,7 +222,7 @@ func (that *FileLogger) openFile(trunc bool) error {
 
 	// Create the directory if it doesn't exist
 	dir := filepath.Dir(that.name)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
@@ -234,7 +232,7 @@ func (that *FileLogger) openFile(trunc bool) error {
 		that.fileSize = 0
 	} else {
 		that.fileSize = fileInfo.Size()
-		that.file, err = os.OpenFile(that.name, os.O_RDWR|os.O_APPEND, 0660)
+		that.file, err = os.OpenFile(that.name, os.O_RDWR|os.O_APPEND, 0o660)
 	}
 
 	if err != nil {

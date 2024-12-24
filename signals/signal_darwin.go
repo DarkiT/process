@@ -55,7 +55,6 @@ func ToSignal(signalName string) os.Signal {
 		return sig
 	}
 	return syscall.SIGTERM
-
 }
 
 // Kill 向指定的进程发送信号

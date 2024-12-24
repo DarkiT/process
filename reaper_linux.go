@@ -25,19 +25,20 @@ func DisableDebug() {
 }
 
 func sigChildHandler(notifications chan os.Signal) {
-	var sigs = make(chan os.Signal, 3)
+	sigs := make(chan os.Signal, 3)
 	signal.Notify(sigs, syscall.SIGCHLD)
 
 	for {
-		var sig = <-sigs
+		sig := <-sigs
 		select {
 		case notifications <- sig:
 		default:
 		}
 	}
 }
+
 func reapChildren(config Config) {
-	var notifications = make(chan os.Signal, 1)
+	notifications := make(chan os.Signal, 1)
 
 	go sigChildHandler(notifications)
 
@@ -45,7 +46,7 @@ func reapChildren(config Config) {
 	opts := config.Options
 
 	for {
-		var sig = <-notifications
+		sig := <-notifications
 		if debug {
 			fmt.Printf(" - Received signal %v\n", sig)
 		}

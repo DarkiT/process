@@ -12,9 +12,7 @@ import (
 )
 
 func main() {
-	var (
-		configFile string
-	)
+	var configFile string
 
 	flag.StringVar(&configFile, "config", "config.yaml", "Configuration file path")
 	flag.Parse()

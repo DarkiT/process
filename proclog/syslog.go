@@ -15,7 +15,7 @@ import (
 type SysLogger struct {
 	NullLogger
 	logWriter io.WriteCloser
-	//logEventEmitter LogEventEmitter
+	// logEventEmitter LogEventEmitter
 }
 
 // NewSysLogger 获取系统syslog的对象
@@ -58,11 +58,10 @@ func NewRemoteSysLogger(name string, config string, props map[string]string) *Sy
 		logger.logWriter = NewBackendSysLogWriter(protocol, fmt.Sprintf("%s:%d", host, port), priority, name)
 	}
 	return logger
-
 }
 
 func (that *SysLogger) Write(b []byte) (int, error) {
-	//sl.logEventEmitter.emitLogEvent(string(b))
+	// sl.logEventEmitter.emitLogEvent(string(b))
 	if that.logWriter == nil {
 		return 0, errors.New("not connect to syslog server")
 	}
@@ -204,5 +203,4 @@ func parseSysLogConfig(config string) (protocol string, host string, port int, e
 		err = errors.New("invalid format")
 	}
 	return
-
 }

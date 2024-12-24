@@ -1,8 +1,9 @@
 package process
 
 import (
-	"github.com/darkit/process/proclog"
 	"strconv"
+
+	"github.com/darkit/process/proclog"
 )
 
 func (p *Process) createStdoutLogger() proclog.Logger {

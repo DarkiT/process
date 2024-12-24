@@ -247,7 +247,7 @@ func NewProcOptions(opts ...ProcOption) ProcOptions {
 		RestartPause: 0,
 		StopWaitSecs: 10,
 		KillWaitSecs: 2,
-		//User:                     "root",
+		// User:                     "root",
 		Priority:                 999,
 		StopAsGroup:              false,
 		KillAsGroup:              false,
