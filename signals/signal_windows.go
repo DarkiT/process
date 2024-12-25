@@ -62,6 +62,14 @@ func KillPid(pid int, sig os.Signal, sigChildren ...bool) error {
 }
 
 // CheckPidExist 检查进程是否存在
-func CheckPidExist(_ int) bool {
-	return false
+func CheckPidExist(pid int) bool {
+	// 尝试获取进程句柄
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+
+	// 在 Windows 上，FindProcess 总是返回非 nil 的进程和 nil 错误
+	// 需要额外调用 Signal(0) 来验证进程是否真实存在
+	return process.Signal(syscall.Signal(0)) == nil
 }

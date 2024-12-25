@@ -248,7 +248,7 @@ func NewOptions(opts ...WithOption) Options {
 		AutoReStart:              AutoReStartTrue,
 		StartRetries:             3,
 		RestartPause:             0,
-		StopWaitSecs:             10,
+		StopWaitSecs:             15,
 		KillWaitSecs:             2,
 		Priority:                 999,
 		StopAsGroup:              false,
@@ -256,15 +256,14 @@ func NewOptions(opts ...WithOption) Options {
 		RestartWhenBinaryChanged: false,
 		Extend:                   utils.NewAnyAnyMap(),
 		Environment:              utils.NewStrStrMap(),
+		StdoutLogFileMaxBytes:    50 * 1024 * 1024,
+		StdoutLogFileBackups:     10,
+		RedirectStderr:           false,
+		StderrLogFileMaxBytes:    50 * 1024 * 1024,
+		StderrLogFileBackups:     10,
 		// User:                     "root",
-
-		StdoutLogfile:         "",
-		StdoutLogFileMaxBytes: 50 * 1024 * 1024,
-		StdoutLogFileBackups:  10,
-		RedirectStderr:        false,
-		StderrLogfile:         "",
-		StderrLogFileMaxBytes: 50 * 1024 * 1024,
-		StderrLogFileBackups:  10,
+		// StdoutLogfile:            "",
+		// StderrLogfile:            "",
 	}
 	for _, opt := range opts {
 		opt(&proc)

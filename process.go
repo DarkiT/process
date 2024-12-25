@@ -209,26 +209,20 @@ func (that *Process) Stop(wait bool) {
 		}
 	}()
 
-	// 如果阻塞等待进程结束
-	if wait {
-		// 如果需要等待，则同时等待 stopChan 和超时
+	_exit := func() {
 		select {
 		case <-ctx.Done():
 			slog.Warn("停止进程[%s]超时", that.GetName())
 		case <-stopChan:
 			slog.Info("进程[%s]已停止", that.GetName())
 		}
-	} else {
-		// 如果不需要等待，直接返回
-		go func() {
-			select {
-			case <-ctx.Done():
-				slog.Warn("停止进程[%s]超时", that.GetName())
-			case <-stopChan:
-				slog.Info("进程[%s]已停止", that.GetName())
-			}
-		}()
 	}
+	// 如果阻塞等待进程结束
+	if wait {
+		_exit()
+		return
+	}
+	go _exit()
 }
 
 // 启动进程

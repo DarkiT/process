@@ -82,7 +82,27 @@ func KillPid(pid int, sig os.Signal, sigChildren ...bool) error {
 	return syscall.Kill(pid, localSig)
 }
 
-// 检查进程是否存在
-func CheckPidExist(_ int) bool {
+// CheckPidExist 检查进程是否存在
+func CheckPidExist(pid int) bool {
+	// 在 Unix-like 系统中，发送信号 0 可以用来检测进程是否存在
+	// 如果进程存在，返回 nil
+	// 如果进程不存在，返回错误
+	err := syscall.Kill(pid, 0)
+
+	if err == nil {
+		return true // 进程存在
+	}
+
+	// 如果错误是 ESRCH，表示进程不存在
+	if err == syscall.ESRCH {
+		return false
+	}
+
+	// 如果是权限错误 (EPERM)，进程仍然存在，只是当前用户无权限
+	if err == syscall.EPERM {
+		return true
+	}
+
+	// 其他错误情况，保守起见返回 false
 	return false
 }
