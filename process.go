@@ -15,7 +15,6 @@ import (
 	"github.com/darkit/process/proclog"
 	"github.com/darkit/process/signals"
 	"github.com/darkit/process/utils"
-	"github.com/darkit/slog"
 )
 
 type Process struct {
@@ -78,11 +77,11 @@ func NewProcessCmd(cmd string, environment map[string]string) *Process {
 
 // Start 启动进程，wait表示阻塞等待进程启动成功
 func (that *Process) Start(wait bool) {
-	slog.Info("尝试启动程序[%s]", that.option.Name)
+	that.Manager.logger.Infof("尝试启动程序[%s]", that.option.Name)
 
 	that.lock.Lock()
 	if that.inStart {
-		slog.Info("不能重复启动该进程[%s],因为该进程已经启动！", that.option.Name)
+		that.Manager.logger.Infof("不能重复启动该进程[%s],因为该进程已经启动！", that.option.Name)
 		that.lock.Unlock()
 		return
 	}
@@ -111,15 +110,15 @@ func (that *Process) Start(wait bool) {
 				time.Sleep(3 * time.Second)
 			}
 			if that.stopByUser {
-				slog.Info("用户主动结束了该程序[%s]，不要再次启动", that.option.Name)
+				that.Manager.logger.Infof("用户主动结束了该程序[%s], 不用再次启动", that.option.Name)
 				break
 			}
 			// 判断进程是否需要自动重启
 			if !that.isAutoRestart() {
-				slog.Info("不要自动重启进程[%s],因为该进程设置了不需要自动重启", that.option.Name)
+				that.Manager.logger.Infof("不用自动重启进程[%s], 因为该进程设置了不需要自动重启", that.option.Name)
 				break
 			}
-			slog.Info("因为该进程设置了自动重启,自动重启进程[%s],", that.option.Name)
+			that.Manager.logger.Infof("因为该进程设置了自动重启, 自动重启进程[%s],", that.option.Name)
 		}
 		that.lock.Lock()
 		that.inStart = false
@@ -134,9 +133,6 @@ func (that *Process) Start(wait bool) {
 
 // Stop 主动停止进程
 func (that *Process) Stop(wait bool) {
-	that.lock.RLock()
-	defer that.lock.RUnlock()
-
 	if that.monitorCancel != nil {
 		that.monitorCancel()
 	}
@@ -147,10 +143,10 @@ func (that *Process) Stop(wait bool) {
 	that.lock.Unlock()
 
 	if !isRunning {
-		slog.Info("程序[%s]未运行", that.GetName())
+		that.Manager.logger.Infof("程序[%s]未运行", that.GetName())
 		return
 	}
-	slog.Info("正在停止程序[%s]", that.GetName())
+	that.Manager.logger.Infof("正在停止程序[%s]", that.GetName())
 
 	// 获取程序的正常退出信号
 	sigs := that.option.StopSignal
@@ -163,7 +159,7 @@ func (that *Process) Stop(wait bool) {
 	// 是否强制杀死进程组
 	killAsGroup := that.option.KillAsGroup
 	if stopAsGroup && !killAsGroup {
-		slog.Error("不能够同时设置 stopAsGroup=true 和 killAsGroup=false")
+		that.Manager.logger.Errorf("不能够同时设置 stopAsGroup=true 和 killAsGroup=false")
 	}
 	var stopped int32 = 0
 
@@ -177,7 +173,7 @@ func (that *Process) Stop(wait bool) {
 		for i := 0; i < len(sigs) && atomic.LoadInt32(&stopped) == 0; i++ {
 			// 获取需要发送的信号
 			sig := signals.ToSignal(sigs[i])
-			slog.Info("发送结束进程信号[%s]给进程[%s]", that.GetName(), sigs[i])
+			that.Manager.logger.Infof("发送结束进程信号[%s]给进程[%s]", that.GetName(), sigs[i])
 			// 发送结束进程信号给程序
 			_ = that.Signal(sig, stopAsGroup)
 			endTime := time.Now().Add(waitSecond)
@@ -193,7 +189,7 @@ func (that *Process) Stop(wait bool) {
 		}
 		// 如果发送了设置的信号后，进程还未停止，则需要强制结束该进程
 		if atomic.LoadInt32(&stopped) == 0 {
-			slog.Info("强制结束程序[%s]", that.GetName())
+			that.Manager.logger.Infof("强制结束程序[%s]", that.GetName())
 			_ = that.Signal(syscall.SIGKILL, killAsGroup)
 			killEndTime := time.Now().Add(killWaitSecond)
 			for killEndTime.After(time.Now()) {
@@ -212,9 +208,9 @@ func (that *Process) Stop(wait bool) {
 	_exit := func() {
 		select {
 		case <-ctx.Done():
-			slog.Warn("停止进程[%s]超时", that.GetName())
+			that.Manager.logger.Warnf("停止进程[%s]超时", that.GetName())
 		case <-stopChan:
-			slog.Info("进程[%s]已停止", that.GetName())
+			that.Manager.logger.Infof("进程[%s]已停止", that.GetName())
 		}
 	}
 	// 如果阻塞等待进程结束
@@ -232,7 +228,7 @@ func (that *Process) run(finishCb func()) {
 
 	// 判断进程是否正在运行
 	if that.isRunning() {
-		slog.Info("不能启动进程[%s],因为它正在运行中...", that.option.Name)
+		that.Manager.logger.Infof("不能启动进程[%s],因为它正在运行中...", that.option.Name)
 		finishCb()
 		return
 	}
@@ -251,11 +247,10 @@ func (that *Process) run(finishCb func()) {
 
 	// 进程被用户结束
 	for !that.stopByUser {
-
 		// 如果进程启动失败，需要重试，则需要判断配置，重试启动是否需要间隔制定时间
 		if restartPause > 0 && atomic.LoadInt32(that.retryTimes) != 0 {
 			that.lock.Lock()
-			slog.Info("不能立刻重启程序[%s],需要等待%d秒", that.option.Name, restartPause)
+			that.Manager.logger.Infof("不能立刻重启程序[%s],需要等待%d秒", that.option.Name, restartPause)
 			time.Sleep(time.Duration(restartPause) * time.Second)
 			that.lock.Unlock()
 		}
@@ -268,7 +263,7 @@ func (that *Process) run(finishCb func()) {
 		// 创建启动命令行
 		err := that.createProgramCommand()
 		if err != nil {
-			that.failToStartProgram(fmt.Errorf("不能创建进程,error: %v", err), finishCbWrapper)
+			that.failToStartProgram(fmt.Errorf("不能创建进程 %v", err), finishCbWrapper)
 			break
 		}
 		// 启动程序
@@ -276,11 +271,11 @@ func (that *Process) run(finishCb func()) {
 		if err != nil {
 			// 重试次数已经大于设置中的最大重试次数
 			if atomic.LoadInt32(that.retryTimes) >= int32(that.option.StartRetries) {
-				that.failToStartProgram(fmt.Errorf("重试次数已经达到最大重试次数 error: %v", err), finishCbWrapper)
+				that.failToStartProgram(fmt.Errorf("重试次数已经达到最大重试次数 %v", err), finishCbWrapper)
 				break
 			} else {
 				// 启动失败，再次重试
-				slog.WithValue("error", err).Info("程序[%s]启动失败,再次重试", that.option.Name)
+				that.Manager.logger.Errorf("程序[%s]启动失败稍后将再次重试! 错误信息: %v", that.option.Name, err)
 				that.changeStateTo(Backoff)
 				continue
 			}
@@ -297,7 +292,7 @@ func (that *Process) run(finishCb func()) {
 		programExited := int32(0)
 		// 如果未设置启动监视时长，则表示cmd.start成功就算该程序启动成功
 		if startSecs <= 0 {
-			slog.Info("程序[%s]启动成功", that.option.Name)
+			that.Manager.logger.Infof("程序[%s]启动成功", that.option.Name)
 			that.changeStateTo(Running)
 			go finishCbWrapper()
 		} else {
@@ -308,9 +303,9 @@ func (that *Process) run(finishCb func()) {
 			}()
 		}
 		if that.stopTime.IsZero() {
-			slog.Debugf("正在尝试启动[%s]请稍后...", that.option.Name)
+			that.Manager.logger.Debugf("正在尝试启动[%s]请稍后...", that.option.Name)
 		} else {
-			slog.Debugf("进程正在运行[%s]等待退出", that.option.Name)
+			that.Manager.logger.Debugf("进程正在运行[%s]等待退出", that.option.Name)
 		}
 		that.lock.Unlock()
 		that.waitForExit(int64(startSecs))
@@ -325,7 +320,7 @@ func (that *Process) run(finishCb func()) {
 		// 如果程序的运行状态为 Running，则更改它的状态
 		if that.state == Running {
 			that.changeStateTo(Exited)
-			slog.Info("程序[%s]已经结束", that.option.Name)
+			that.Manager.logger.Infof("程序[%s]已经结束", that.option.Name)
 			break
 		} else {
 			that.changeStateTo(Backoff)
@@ -352,7 +347,7 @@ func (that *Process) createProgramCommand() (err error) {
 
 	// 设置程序重启变化监控
 	if err = that.setProgramRestartChangeMonitor(that.cmd.Args[0]); err != nil {
-		slog.Error("设置程序重启监控失败: %v", err)
+		that.Manager.logger.Errorf("设置程序重启监控失败: %v", err)
 	}
 
 	// 父进程退出，则它生成的子进程也全部退出
@@ -420,7 +415,7 @@ func (that *Process) setLog() {
 
 // 设置程序启动失败状态
 func (that *Process) failToStartProgram(err error, finishCb func()) {
-	slog.WithValue("error", err).Error("程序[%s]启动失败", that.option.Name)
+	that.Manager.logger.Errorf("程序[%s]启动失败: %v", that.option.Name, err)
 	that.changeStateTo(Fatal)
 	finishCb()
 }
@@ -437,7 +432,7 @@ func (that *Process) monitorProgramIsRunning(endTime time.Time, monitorExited *i
 	defer that.lock.Unlock()
 	// 进程在此期间未退出
 	if atomic.LoadInt32(programExited) == 0 && that.state == Starting {
-		slog.Info("进程[%s]启动成功", that.option.Name)
+		that.Manager.logger.Infof("进程[%s]启动成功", that.option.Name)
 		that.changeStateTo(Running)
 	}
 }
@@ -467,9 +462,9 @@ func (that *Process) isAutoRestart() bool {
 func (that *Process) waitForExit(_ int64) {
 	_ = that.cmd.Wait()
 	if that.cmd.ProcessState != nil {
-		slog.Info("程序[%s]已经运行结束，退出码为:%v", that.option.Name, that.cmd.ProcessState)
+		that.Manager.logger.Infof("程序[%s]已经运行结束, 退出码为:%v", that.option.Name, that.cmd.ProcessState)
 	} else {
-		slog.Info("程序[%s]已经运行结束", that.option.Name)
+		that.Manager.logger.Infof("程序[%s]已经运行结束", that.option.Name)
 	}
 	that.lock.Lock()
 	defer that.lock.Unlock()
@@ -484,9 +479,6 @@ func (that *Process) waitForExit(_ int64) {
 
 // Clone 进程
 func (that *Process) Clone() (*Process, error) {
-	that.lock.Lock()
-	defer that.lock.Unlock()
-
 	var t time.Time
 	proc := &Process{
 		Manager:    that.Manager,
@@ -547,7 +539,7 @@ func (that *Process) setProgramRestartChangeMonitor(programPath string) error {
 
 				// 如果文件被修改且进程正在运行，则重启进程
 				if currentInfo.ModTime() != that.lastModTime && that.state == Running {
-					slog.Info("检测到程序文件[%s]发生变化，准备重启进程", programPath)
+					that.Manager.logger.Infof("检测到程序文件[%s]发生变化, 准备重启进程", programPath)
 					that.lastModTime = currentInfo.ModTime()
 					that.Stop(true)  // 停止当前进程
 					that.Start(true) // 重启进程

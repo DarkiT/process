@@ -3,17 +3,24 @@ package process
 import (
 	"fmt"
 	"sync"
-
-	"github.com/darkit/slog"
 )
 
 type Manager struct {
 	processes sync.Map
+	logger    Logger
 }
 
 // NewManager 创建进程管理器
-func NewManager() *Manager {
-	return &Manager{}
+// logger: 日志记录器
+func NewManager(logger ...Logger) *Manager {
+	m := &Manager{}
+	if len(logger) > 0 {
+		m.logger = logger[0]
+	} else {
+		m.logger = newDefaultLogger()
+	}
+
+	return m
 }
 
 // NewProcess 创建新的进程实例
@@ -37,7 +44,7 @@ func (m *Manager) NewProcess(opts ...WithOption) (*Process, error) {
 	}
 
 	m.processes.Store(options.Name, proc)
-	slog.Infof("创建进程: %s", proc.GetName())
+	m.logger.Infof("创建进程: %s", proc.GetName())
 
 	return proc, nil
 }
@@ -64,7 +71,7 @@ func (m *Manager) NewProcessByProcess(proc *Process) (*Process, error) {
 	}
 	proc.Manager = m
 	m.processes.Store(proc.GetName(), proc)
-	slog.Infof("创建进程: %s", proc.GetName())
+	m.logger.Infof("创建进程: %s", proc.GetName())
 	return proc, nil
 }
 
@@ -84,13 +91,13 @@ func (m *Manager) NewProcessCmd(cmd string, environment map[string]string) (*Pro
 // Add 添加进程到Manager
 func (m *Manager) Add(name string, proc *Process) {
 	m.processes.Store(name, proc)
-	slog.Infof("添加进程: %s", name)
+	m.logger.Infof("添加进程: %s", name)
 }
 
 // Remove 从Manager移除进程
 func (m *Manager) Remove(name string) *Process {
 	if value, ok := m.processes.LoadAndDelete(name); ok {
-		slog.Infof("移除进程: %s", name)
+		m.logger.Infof("移除进程: %s", name)
 		return value.(*Process)
 	}
 	return nil
@@ -157,7 +164,7 @@ func (m *Manager) GetProcessInfo(name string) (*Info, error) {
 
 // StartProcess 启动指定进程
 func (m *Manager) StartProcess(name string, wait bool) (bool, error) {
-	slog.Infof("启动进程[%s]", name)
+	m.logger.Infof("启动进程[%s]", name)
 	proc := m.Find(name)
 	if proc == nil {
 		return false, fmt.Errorf("没有找到要启动的进程[%s]", name)
@@ -168,7 +175,7 @@ func (m *Manager) StartProcess(name string, wait bool) (bool, error) {
 
 // StopProcess 停止指定进程
 func (m *Manager) StopProcess(name string, wait bool) (bool, error) {
-	slog.Infof("结束进程[%s]", name)
+	m.logger.Infof("结束进程[%s]", name)
 	proc := m.Find(name)
 	if proc == nil {
 		return false, fmt.Errorf("没有找到要结束的进程[%s]", name)
@@ -179,7 +186,7 @@ func (m *Manager) StopProcess(name string, wait bool) (bool, error) {
 
 // GracefulReload 停止指定进程
 func (m *Manager) GracefulReload(name string, wait bool) (bool, error) {
-	slog.Infof("平滑重启进程[%s]", name)
+	m.logger.Infof("平滑重启进程[%s]", name)
 	proc := m.Find(name)
 	if proc == nil {
 		return false, fmt.Errorf("没有找到要重启的进程[%s]", name)

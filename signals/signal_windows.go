@@ -7,8 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
-
-	"github.com/darkit/slog"
 )
 
 // ToSignal 传入信号字符串，返回标准信号
@@ -22,10 +20,8 @@ func ToSignal(signalName string) os.Signal {
 	} else if signalName == "KILL" {
 		return syscall.SIGKILL
 	} else if signalName == "USR1" {
-		slog.Warn("signal USR1 is not supported in windows")
 		return syscall.SIGTERM
 	} else if signalName == "USR2" {
-		slog.Warn("signal USR2 is not supported in windows")
 		return syscall.SIGTERM
 	} else {
 		return syscall.SIGTERM

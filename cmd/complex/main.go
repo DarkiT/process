@@ -1,10 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/darkit/process"
-	"github.com/darkit/slog"
 )
 
 func main() {
@@ -31,7 +32,7 @@ func main() {
 			process.WithStderrLog("logs/"+p.name+".err", "50MB"),
 		)
 		if err != nil {
-			slog.Fatalf("Failed to create process %s: %v", p.name, err)
+			slog.Error(fmt.Sprintf("Failed to create process %s: %v", p.name, err))
 		}
 
 		proc.Start(true)

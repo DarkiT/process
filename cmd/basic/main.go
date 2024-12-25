@@ -1,17 +1,11 @@
 package main
 
 import (
-	"os"
+	"log/slog"
 	"time"
 
 	"github.com/darkit/process"
-	"github.com/darkit/slog"
 )
-
-func init() {
-	slog.SetLevelDebug()
-	slog.NewLogger(os.Stdout, false, true)
-}
 
 func main() {
 	manager := process.NewManager()
@@ -25,7 +19,7 @@ func main() {
 		// process.WithStdoutLog("logs/test.log", "50MB"),
 	)
 	if err != nil {
-		slog.Fatal(err.Error())
+		slog.Error(err.Error())
 	}
 
 	// Start the process

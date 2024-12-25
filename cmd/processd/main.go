@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/darkit/process"
-	"github.com/darkit/slog"
 )
 
 func main() {
@@ -28,14 +29,14 @@ func main() {
 
 	go func() {
 		sig := <-sigChan
-		slog.Infof("Received signal: %v", sig)
+		slog.Info("Received signal: %v", sig)
 		cancel()
 	}()
 
 	// Example process creation
 	proc, err := manager.NewProcessCmd("echo 'Hello World'", nil)
 	if err != nil {
-		slog.Fatalf("Failed to create process: %v", err)
+		slog.Error(fmt.Sprintf("Failed to create process: %v", err))
 	}
 
 	proc.Start(true)
