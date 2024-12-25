@@ -135,6 +135,9 @@ func (that *Process) Start(wait bool) {
 
 // Stop 主动停止进程
 func (that *Process) Stop(wait bool) {
+	that.lock.RLock()
+	defer that.lock.RUnlock()
+
 	if that.monitorCancel != nil {
 		that.monitorCancel()
 	}
@@ -488,6 +491,9 @@ func (that *Process) waitForExit(_ int64) {
 
 // Clone 进程
 func (that *Process) Clone() (*Process, error) {
+	that.lock.Lock()
+	defer that.lock.Unlock()
+
 	var t time.Time
 	proc := &Process{
 		Manager:    that.Manager,
