@@ -180,7 +180,7 @@ func (that *Process) Stop(wait bool) {
 			// 等待指定的时候后，判断当前进程是否还在存
 			for endTime.After(time.Now()) {
 				// 如果进程不存在了
-				if that.state != Starting && that.state != Running && that.state != Stopping {
+				if that.checkState() {
 					atomic.StoreInt32(&stopped, 1)
 					break
 				}
@@ -194,7 +194,7 @@ func (that *Process) Stop(wait bool) {
 			killEndTime := time.Now().Add(killWaitSecond)
 			for killEndTime.After(time.Now()) {
 				// 如果进程结束成功
-				if that.state != Starting && that.state != Running && that.state != Stopping {
+				if that.checkState() {
 					atomic.StoreInt32(&stopped, 1)
 					break
 				}
@@ -549,4 +549,10 @@ func (that *Process) setProgramRestartChangeMonitor(programPath string) error {
 	}()
 
 	return nil
+}
+
+func (that *Process) checkState() bool {
+	that.lock.RLock()
+	defer that.lock.RUnlock()
+	return that.state != Starting && that.state != Running && that.state != Stopping
 }
