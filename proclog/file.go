@@ -211,34 +211,33 @@ func (that *FileLogger) ReadTailLog(offset int64, length int64) (string, int64, 
 
 // openFile 打开要写入的日志文件，如果目录不存在则自动创建
 func (that *FileLogger) openFile(trunc bool) error {
+	if that.file != nil {
+		if err := that.file.Close(); err != nil {
+			return fmt.Errorf("关闭现有日志文件失败: %w", err)
+		}
+	}
 	if that.name == "" || that.name == "/dev/null" {
 		return nil
 	}
 
-	// Close the existing file if it is open
-	if that.file != nil {
-		_ = that.file.Close()
-	}
-
-	// Create the directory if it doesn't exist
 	dir := filepath.Dir(that.name)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", dir, err)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("创建日志目录失败: %w", err)
 	}
 
-	fileInfo, err := os.Stat(that.name)
-	if trunc || err != nil {
-		that.file, err = os.Create(that.name)
-		that.fileSize = 0
+	flags := os.O_WRONLY | os.O_CREATE
+	if trunc {
+		flags |= os.O_TRUNC
 	} else {
-		that.fileSize = fileInfo.Size()
-		that.file, err = os.OpenFile(that.name, os.O_RDWR|os.O_APPEND, 0o660)
+		flags |= os.O_APPEND
 	}
 
+	file, err := os.OpenFile(that.name, flags, 0o644)
 	if err != nil {
-		return fmt.Errorf("failed to open log file --%s-- with error %v", that.name, err)
+		return fmt.Errorf("打开日志文件失败: %w", err)
 	}
 
+	that.file = file
 	return nil
 }
 

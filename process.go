@@ -1,6 +1,7 @@
 package process
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -30,10 +31,11 @@ type Process struct {
 	retryTimes  *int32    // 启动的次数
 	lastModTime time.Time // 文件最后修改时间
 
-	lock      sync.RWMutex
-	stdin     io.WriteCloser
-	stdoutLog proclog.Logger
-	stderrLog proclog.Logger
+	lock          sync.RWMutex
+	stdin         io.WriteCloser
+	stdoutLog     proclog.Logger
+	stderrLog     proclog.Logger
+	monitorCancel context.CancelFunc
 }
 
 // NewProcess 创建进程对象
@@ -133,10 +135,15 @@ func (that *Process) Start(wait bool) {
 
 // Stop 主动停止进程
 func (that *Process) Stop(wait bool) {
+	if that.monitorCancel != nil {
+		that.monitorCancel()
+	}
+
 	that.lock.Lock()
 	that.stopByUser = true
 	isRunning := that.isRunning()
 	that.lock.Unlock()
+
 	if !isRunning {
 		slog.Info("程序[%s]未运行", that.GetName())
 		return
@@ -158,7 +165,13 @@ func (that *Process) Stop(wait bool) {
 	}
 	var stopped int32 = 0
 
+	// 添加 context 控制
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(that.option.StopWaitSecs)*time.Second)
+	defer cancel()
+
+	stopChan := make(chan struct{})
 	go func() {
+		defer close(stopChan)
 		for i := 0; i < len(sigs) && atomic.LoadInt32(&stopped) == 0; i++ {
 			// 获取需要发送的信号
 			sig := signals.ToSignal(sigs[i])
@@ -193,11 +206,26 @@ func (that *Process) Stop(wait bool) {
 			atomic.StoreInt32(&stopped, 1)
 		}
 	}()
+
 	// 如果阻塞等待进程结束
 	if wait {
-		for atomic.LoadInt32(&stopped) == 0 {
-			time.Sleep(1 * time.Second)
+		// 如果需要等待，则同时等待 stopChan 和超时
+		select {
+		case <-ctx.Done():
+			slog.Warn("停止进程[%s]超时", that.GetName())
+		case <-stopChan:
+			slog.Info("进程[%s]已停止", that.GetName())
 		}
+	} else {
+		// 如果不需要等待，直接返回
+		go func() {
+			select {
+			case <-ctx.Done():
+				slog.Warn("停止进程[%s]超时", that.GetName())
+			case <-stopChan:
+				slog.Info("进程[%s]已停止", that.GetName())
+			}
+		}()
 	}
 }
 
@@ -500,13 +528,17 @@ func (that *Process) setProgramRestartChangeMonitor(programPath string) error {
 	// 存储最后修改时间
 	that.lastModTime = fileInfo.ModTime()
 
-	// 启动一个 goroutine 来监控文件变化
+	ctx, cancel := context.WithCancel(context.Background())
+	that.monitorCancel = cancel
+
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 
 		for {
 			select {
+			case <-ctx.Done():
+				return
 			case <-ticker.C:
 				// 检查文件是否被修改
 				currentInfo, err := os.Stat(programPath)
