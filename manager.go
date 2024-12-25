@@ -1,7 +1,6 @@
 package process
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -10,7 +9,6 @@ import (
 
 type Manager struct {
 	processes sync.Map
-	wg        sync.WaitGroup
 }
 
 // NewManager 创建进程管理器
@@ -62,7 +60,7 @@ func (m *Manager) NewProcessByOptions(opts Options) (*Process, error) {
 // proc: Process对象
 func (m *Manager) NewProcessByProcess(proc *Process) (*Process, error) {
 	if _, found := m.processes.Load(proc.GetName()); found {
-		return nil, errors.New(fmt.Sprintf("进程[%s]已存在", proc.GetName()))
+		return nil, fmt.Errorf("进程[%s]已存在", proc.GetName())
 	}
 	proc.Manager = m
 	m.processes.Store(proc.GetName(), proc)
