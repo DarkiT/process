@@ -96,7 +96,7 @@ func (h *ProcessHandler[T]) CreateProcess() T {
 		proc := process.NewProcess(
 			process.WithName(req.Name),
 			process.WithCommand(req.Command),
-			process.WithArgs(args),
+			process.WithArgs(args...),
 			process.WithDirectory(req.Directory),
 			process.WithUser(req.User),
 			process.WithEnvironment(env),
@@ -279,21 +279,6 @@ func (h *ProcessHandler[T]) getLastLog(name string) string {
 	return logs
 }
 
-// jsonResponse is a helper function to send JSON responses
-func jsonResponse(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
-}
-
-// errorResponse is a helper function to send error responses in JSON format
-func errorResponse(w http.ResponseWriter, status int, message string) {
-	jsonResponse(w, status, map[string]interface{}{
-		"code": -1,
-		"msg":  message,
-	})
-}
-
 // SetupRoutes sets up the HTTP routes for the ProcessHandler
 func (h *ProcessHandler[T]) SetupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
@@ -319,6 +304,21 @@ func (h *ProcessHandler[T]) SetupRoutes() *http.ServeMux {
 	setupRoute("/process/stderr", h.GetStderrLog)
 
 	return mux
+}
+
+// jsonResponse is a helper function to send JSON responses
+func jsonResponse(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(data)
+}
+
+// errorResponse is a helper function to send error responses in JSON format
+func errorResponse(w http.ResponseWriter, status int, message string) {
+	jsonResponse(w, status, map[string]interface{}{
+		"code": -1,
+		"msg":  message,
+	})
 }
 
 /*

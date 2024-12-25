@@ -25,7 +25,7 @@ func main() {
 		proc, err := manager.NewProcess(
 			process.WithName(p.name),
 			process.WithCommand(p.command),
-			process.WithArgs(p.args),
+			process.WithArgs(p.args...),
 			process.WithAutoReStart(process.AutoReStartTrue),
 			process.WithStdoutLog("logs/"+p.name+".log", "50MB"),
 			process.WithStderrLog("logs/"+p.name+".err", "50MB"),

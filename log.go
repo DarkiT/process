@@ -1,35 +1,25 @@
 package process
 
-import (
-	"strconv"
+import "github.com/darkit/process/proclog"
 
-	"github.com/darkit/process/proclog"
-)
+// 创建标准输出日志
+func (that *Process) createStdoutLogger() proclog.Logger {
+	logFile := that.GetStdoutLogfile()
+	maxBytes := int64(that.option.StdoutLogFileMaxBytes)
+	backups := that.option.StdoutLogFileBackups
 
-func (p *Process) createStdoutLogger() proclog.Logger {
-	logFile := p.GetStdoutLogfile()
-	maxBytes := int64(p.option.StdoutLogFileMaxBytes)
-	backups := p.option.StdoutLogFileBackups
+	props := make(map[string]string)
 
-	props := map[string]string{
-		"process": p.GetName(),
-		"type":    "stdout",
-		"pid":     strconv.Itoa(p.Pid()),
-	}
-
-	return proclog.NewLogger(p.GetName(), logFile, proclog.NewNullLocker(), maxBytes, backups, props)
+	return proclog.NewLogger(that.GetName(), logFile, proclog.NewNullLocker(), maxBytes, backups, props)
 }
 
-func (p *Process) createStderrLogger() proclog.Logger {
-	logFile := p.GetStderrLogfile()
-	maxBytes := int64(p.option.StderrLogFileMaxBytes)
-	backups := p.option.StderrLogFileBackups
+// 创建标准错误日志
+func (that *Process) createStderrLogger() proclog.Logger {
+	logFile := that.GetStderrLogfile()
+	maxBytes := int64(that.option.StderrLogFileMaxBytes)
+	backups := that.option.StderrLogFileBackups
 
-	props := map[string]string{
-		"process": p.GetName(),
-		"type":    "stderr",
-		"pid":     strconv.Itoa(p.Pid()),
-	}
+	props := make(map[string]string)
 
-	return proclog.NewLogger(p.GetName(), logFile, proclog.NewNullLocker(), maxBytes, backups, props)
+	return proclog.NewLogger(that.GetName(), logFile, proclog.NewNullLocker(), maxBytes, backups, props)
 }

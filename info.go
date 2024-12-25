@@ -26,34 +26,135 @@ type Info struct {
 }
 
 // GetProcessInfo 获取进程的详情
-func (p *Process) GetProcessInfo() *Info {
+func (that *Process) GetProcessInfo() *Info {
 	return &Info{
-		Name:          p.GetName(),
-		Description:   p.GetDescription(),
-		Start:         int(p.GetStartTime().Unix()),
-		Stop:          int(p.GetStopTime().Unix()),
+		Name:          that.GetName(),
+		Description:   that.GetDescription(),
+		Start:         int(that.GetStartTime().Unix()),
+		Stop:          int(that.GetStopTime().Unix()),
 		Now:           int(time.Now().Unix()),
-		State:         int(p.GetState()),
-		StateName:     p.GetState().String(),
+		State:         int(that.GetState()),
+		StateName:     that.GetState().String(),
 		SpawnErr:      "",
-		ExitStatus:    p.GetExitStatus(),
-		Logfile:       p.GetStdoutLogfile(),
-		StdoutLogfile: p.GetStdoutLogfile(),
-		StderrLogfile: p.GetStderrLogfile(),
-		Pid:           p.Pid(),
+		ExitStatus:    that.GetExitStatus(),
+		Logfile:       that.GetStdoutLogfile(),
+		StdoutLogfile: that.GetStdoutLogfile(),
+		StderrLogfile: that.GetStderrLogfile(),
+		Pid:           that.Pid(),
 	}
 }
 
-// 获取进程的退出code值
-func (p *Process) getExitCode() (int, error) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+// GetName 获取进程名
+func (that *Process) GetName() string {
+	return that.option.Name
+}
 
-	if p.cmd.ProcessState == nil {
+// GetDescription 获取进程描述
+func (that *Process) GetDescription() string {
+	that.lock.RLock()
+	defer that.lock.RUnlock()
+	if that.state == Running {
+		seconds := int(time.Since(that.startTime).Seconds())
+		minutes := seconds / 60
+		hours := minutes / 60
+		days := hours / 24
+		if days > 0 {
+			return fmt.Sprintf("pid %d, uptime %d days, %d:%02d:%02d", that.cmd.Process.Pid, days, hours%24, minutes%60, seconds%60)
+		}
+		return fmt.Sprintf("pid %d, uptime %d:%02d:%02d", that.cmd.Process.Pid, hours%24, minutes%60, seconds%60)
+	} else if that.state != Stopped {
+		_t := that.stopTime.Format("2006-01-02 15:04:05")
+		if that.stopTime.IsZero() {
+			_t = "未知"
+		}
+		return fmt.Sprintf("进程[%s]状态: %s 前一次停止时间: %s", that.GetName(), that.state.String(), _t)
+	}
+	return ""
+}
+
+// GetState 获取进程状态
+func (that *Process) GetState() State {
+	return that.state
+}
+
+// GetStartTime 获取进程启动时间
+func (that *Process) GetStartTime() time.Time {
+	return that.startTime
+}
+
+// GetStopTime 获取进程结束时间
+func (that *Process) GetStopTime() time.Time {
+	switch that.state {
+	case Starting:
+		fallthrough
+	case Running:
+		fallthrough
+	case Stopping:
+		return time.Unix(0, 0)
+	default:
+		return that.stopTime
+	}
+}
+
+// GetExitStatus 获取进程退出状态
+func (that *Process) GetExitStatus() int {
+	that.lock.RLock()
+	defer that.lock.RUnlock()
+
+	if that.state == Exited || that.state == Backoff {
+		if that.cmd.ProcessState == nil {
+			return 0
+		}
+		status, ok := that.cmd.ProcessState.Sys().(syscall.WaitStatus)
+		if ok {
+			return status.ExitStatus()
+		}
+	}
+	return 0
+}
+
+// Pid 获取进程pid，返回0表示进程未启动
+func (that *Process) Pid() int {
+	if that.state == Stopped || that.state == Fatal || that.state == Unknown || that.state == Exited || that.state == Backoff {
+		return 0
+	}
+	return that.cmd.Process.Pid
+}
+
+// GetStdoutLogfile 获取标准输出将要写入的日志文件
+func (that *Process) GetStdoutLogfile() string {
+	fileName := "/dev/null"
+	if len(that.option.StdoutLogfile) > 0 {
+		fileName = that.option.StdoutLogfile
+	}
+	expandFile := utils.RealPath(fileName)
+	return expandFile
+}
+
+// GetStderrLogfile 获取标准错误将要写入的日志文件
+func (that *Process) GetStderrLogfile() string {
+	fileName := "/dev/null"
+	if len(that.option.StderrLogfile) > 0 {
+		fileName = that.option.StdoutLogfile
+	}
+	expandFile := utils.RealPath(fileName)
+	return expandFile
+}
+
+// GetStatus 获取进程当前状态
+func (that *Process) GetStatus() string {
+	if that.cmd.ProcessState.Exited() {
+		return that.cmd.ProcessState.String()
+	}
+	return "running"
+}
+
+// 获取进程的退出code值
+func (that *Process) getExitCode() (int, error) {
+	if that.cmd.ProcessState == nil {
 		return -1, fmt.Errorf("no exit code")
 	}
-
-	if status, ok := p.cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
+	if status, ok := that.cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
 		return status.ExitStatus(), nil
 	}
 
@@ -61,8 +162,8 @@ func (p *Process) getExitCode() (int, error) {
 }
 
 // 进程的退出code值是否在设置中的codes列表中
-func (p *Process) inExitCodes(exitCode int) bool {
-	for _, code := range p.getExitCodes() {
+func (that *Process) inExitCodes(exitCode int) bool {
+	for _, code := range that.getExitCodes() {
 		if code == exitCode {
 			return true
 		}
@@ -71,119 +172,10 @@ func (p *Process) inExitCodes(exitCode int) bool {
 }
 
 // 获取配置的退出code值列表
-func (p *Process) getExitCodes() []int {
-	strExitCodes := p.option.ExitCodes
-	if len(strExitCodes) > 0 {
+func (that *Process) getExitCodes() []int {
+	strExitCodes := that.option.ExitCodes
+	if len(that.option.ExitCodes) > 0 {
 		return strExitCodes
 	}
-	return []int{0, 2} // 默认的退出码
-}
-
-// GetName 获取进程名
-func (p *Process) GetName() string {
-	return p.option.Name
-}
-
-// GetDescription 获取进程描述
-func (p *Process) GetDescription() string {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	if p.state == Running {
-		seconds := int(time.Now().Sub(p.startTime).Seconds())
-		minutes := seconds / 60
-		hours := minutes / 60
-		days := hours / 24
-
-		if days > 0 {
-			return fmt.Sprintf("pid %d, uptime %d days, %d:%02d:%02d",
-				p.cmd.Process.Pid, days, hours%24, minutes%60, seconds%60)
-		}
-		return fmt.Sprintf("pid %d, uptime %d:%02d:%02d", p.cmd.Process.Pid, hours%24, minutes%60, seconds%60)
-	} else if p.state != Stopped {
-		t := p.stopTime.Format("2006-01-02 15:04:05")
-		if p.stopTime.IsZero() {
-			t = "未知"
-		}
-		return fmt.Sprintf("进程[%s]状态: %s 前一次停止时间: %s", p.GetName(), p.state.String(), t)
-	}
-	return ""
-}
-
-// GetStartTime 获取进程启动时间
-func (p *Process) GetStartTime() time.Time {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	return p.startTime
-}
-
-// GetStopTime 获取进程结束时间
-func (p *Process) GetStopTime() time.Time {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	switch p.state {
-	case Starting, Running, Stopping:
-		return time.Unix(0, 0)
-	default:
-		return p.stopTime
-	}
-}
-
-// GetState 获取进程状态
-func (p *Process) GetState() State {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	return p.state
-}
-
-// GetExitStatus 获取进程退出状态
-func (p *Process) GetExitStatus() int {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	if p.state == Exited || p.state == Backoff {
-		if p.cmd.ProcessState == nil {
-			return 0
-		}
-		status, ok := p.cmd.ProcessState.Sys().(syscall.WaitStatus)
-		if ok {
-			return status.ExitStatus()
-		}
-	}
-	return 0
-}
-
-// GetStdoutLogfile 获取标准输出将要写入的日志文件
-func (p *Process) GetStdoutLogfile() string {
-	fileName := "/dev/null"
-	if len(p.option.StdoutLogfile) > 0 {
-		fileName = p.option.StdoutLogfile
-	}
-	return utils.RealPath(fileName)
-}
-
-// GetStderrLogfile 获取标准错误将要写入的日志文件
-func (p *Process) GetStderrLogfile() string {
-	fileName := "/dev/null"
-	if len(p.option.StderrLogfile) > 0 {
-		fileName = p.option.StderrLogfile
-	}
-	return utils.RealPath(fileName)
-}
-
-// Pid 获取进程pid，返回0表示进程未启动
-func (p *Process) Pid() int {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	if p.state == Stopped || p.state == Fatal || p.state == Unknown ||
-		p.state == Exited || p.state == Backoff {
-		return 0
-	}
-
-	if p.cmd != nil && p.cmd.Process != nil {
-		return p.cmd.Process.Pid
-	}
-	return 0
+	return []int{0, 2}
 }

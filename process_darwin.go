@@ -1,8 +1,6 @@
-//go:build darwin
-
 package process
 
 import "syscall"
 
-func (p *Process) sysProcAttrSetPGid(*syscall.SysProcAttr) {
+func (that *Process) sysProcAttrSetPGid(*syscall.SysProcAttr) {
 }

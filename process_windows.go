@@ -1,8 +1,6 @@
-//go:build windows
-
 package process
 
 import "syscall"
 
-func (p *Process) sysProcAttrSetPGid(_ *syscall.SysProcAttr) {
+func (that *Process) sysProcAttrSetPGid(_ *syscall.SysProcAttr) {
 }

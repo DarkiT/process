@@ -1,260 +1,175 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
-	"sync"
 )
 
-type StrAnyMap struct {
-	mu   sync.RWMutex
-	data map[string]interface{}
-}
+// DefaultTrimChars are the characters which are stripped by Trim* functions in default.
+var DefaultTrimChars = string([]byte{
+	'\t', // Tab.
+	'\v', // Vertical tab.
+	'\n', // New line (line feed).
+	'\r', // Carriage return.
+	'\f', // New page.
+	' ',  // Ordinary space.
+	0x00, // NUL-byte.
+	0x85, // Delete.
+	0xA0, // Non-breaking space.
+})
 
-func NewStrAnyMap() *StrAnyMap {
-	return &StrAnyMap{
-		data: make(map[string]interface{}),
-	}
-}
-
-func (m *StrAnyMap) Set(key string, val interface{}) {
-	m.mu.Lock()
-	m.data[key] = val
-	m.mu.Unlock()
-}
-
-func (m *StrAnyMap) Get(key string) interface{} {
-	m.mu.RLock()
-	val := m.data[key]
-	m.mu.RUnlock()
-	return val
-}
-
-func (m *StrAnyMap) Remove(key string) interface{} {
-	m.mu.Lock()
-	val := m.data[key]
-	delete(m.data, key)
-	m.mu.Unlock()
-	return val
-}
-
-func (m *StrAnyMap) Clear() {
-	m.mu.Lock()
-	m.data = make(map[string]interface{})
-	m.mu.Unlock()
-}
-
-func (m *StrAnyMap) Size() int {
-	m.mu.RLock()
-	length := len(m.data)
-	m.mu.RUnlock()
-	return length
-}
-
-func (m *StrAnyMap) Search(key string) (interface{}, bool) {
-	m.mu.RLock()
-	val, exists := m.data[key]
-	m.mu.RUnlock()
-	return val, exists
-}
-
-func (m *StrAnyMap) Map() map[string]interface{} {
-	m.mu.RLock()
-	data := make(map[string]interface{}, len(m.data))
-	for k, v := range m.data {
-		data[k] = v
-	}
-	m.mu.RUnlock()
-	return data
-}
-
-func (m *StrAnyMap) Iterator(f func(k string, v interface{}) bool) {
-	m.mu.RLock()
-	for k, v := range m.data {
-		if !f(k, v) {
-			break
+// GetBytes 通过可识别字符串，返回数字容量
+//
+//	logSize=1MB
+//	logSize=1GB
+//	logSize=1KB
+//	logSize=1024
+func GetBytes(value string, defValue int) int {
+	if len(value) > 2 {
+		lastTwoBytes := value[len(value)-2:]
+		if lastTwoBytes == "MB" {
+			return toInt(value[:len(value)-2], 1024*1024, defValue)
+		} else if lastTwoBytes == "GB" {
+			return toInt(value[:len(value)-2], 1024*1024*1024, defValue)
+		} else if lastTwoBytes == "KB" {
+			return toInt(value[:len(value)-2], 1024, defValue)
 		}
+		return toInt(value, 1, defValue)
 	}
-	m.mu.RUnlock()
+	return defValue
 }
 
-type StrStrMap struct {
-	mu   sync.RWMutex
-	data map[string]string
-}
-
-func NewStrStrMap() *StrStrMap {
-	return &StrStrMap{
-		data: make(map[string]string),
+func toInt(s string, factor int, defValue int) int {
+	i, err := strconv.Atoi(s)
+	if err == nil {
+		return i * factor
 	}
+	return defValue
 }
 
-func (m *StrStrMap) Set(key string, val string) {
-	m.mu.Lock()
-	m.data[key] = val
-	m.mu.Unlock()
-}
-
-func (m *StrStrMap) Sets(data map[string]string) {
-	m.mu.Lock()
-	for k, v := range data {
-		m.data[k] = v
-	}
-	m.mu.Unlock()
-}
-
-func (m *StrStrMap) Get(key string) string {
-	m.mu.RLock()
-	val := m.data[key]
-	m.mu.RUnlock()
-	return val
-}
-
-func (m *StrStrMap) Size() int {
-	m.mu.RLock()
-	length := len(m.data)
-	m.mu.RUnlock()
-	return length
-}
-
-func (m *StrStrMap) Map() map[string]string {
-	m.mu.RLock()
-	data := make(map[string]string, len(m.data))
-	for k, v := range m.data {
-		data[k] = v
-	}
-	m.mu.RUnlock()
-	return data
-}
-
-type AnyAnyMap struct {
-	mu   sync.RWMutex
-	data map[interface{}]interface{}
-}
-
-func NewAnyAnyMap() *AnyAnyMap {
-	return &AnyAnyMap{
-		data: make(map[interface{}]interface{}),
-	}
-}
-
-func (m *AnyAnyMap) Set(key interface{}, val interface{}) {
-	m.mu.Lock()
-	m.data[key] = val
-	m.mu.Unlock()
-}
-
-func (m *AnyAnyMap) Get(key interface{}) interface{} {
-	m.mu.RLock()
-	val := m.data[key]
-	m.mu.RUnlock()
-	return val
-}
-
-func SearchBinary(binary string) string {
-	if filepath.IsAbs(binary) {
-		if Exists(binary) {
-			return binary
-		}
+// RealPath converts the given `path` to its absolute path
+// and checks if the file path exists.
+// If the file does not exist, return an empty string.
+func RealPath(path string) string {
+	p, err := filepath.Abs(path)
+	if err != nil {
 		return ""
 	}
+	if !Exists(p) {
+		return ""
+	}
+	return p
+}
 
-	paths := strings.Split(os.Getenv("PATH"), string(os.PathListSeparator))
-	for _, path := range paths {
-		file := filepath.Join(path, binary)
-		if Exists(file) {
-			return file
+// Exists checks whether given `path` exist.
+func Exists(path string) bool {
+	if stat, err := os.Stat(path); stat != nil && !os.IsNotExist(err) {
+		return true
+	}
+	return false
+}
+
+// Trim strips whitespace (or other characters) from the beginning and end of a string.
+// The optional parameter `characterMask` specifies the additional stripped characters.
+func Trim(str string, characterMask ...string) string {
+	trimChars := DefaultTrimChars
+	if len(characterMask) > 0 {
+		trimChars += characterMask[0]
+	}
+	return strings.Trim(str, trimChars)
+}
+
+// SplitAndTrim splits string `str` by a string `delimiter` to an array,
+// and calls Trim to every element of this array. It ignores the elements
+// which are empty after Trim.
+func SplitAndTrim(str, delimiter string, characterMask ...string) []string {
+	array := make([]string, 0)
+	for _, v := range strings.Split(str, delimiter) {
+		v = Trim(v, characterMask...)
+		if v != "" {
+			array = append(array, v)
+		}
+	}
+	return array
+}
+
+// SearchBinary searches the binary `file` in current working folder and PATH environment.
+func SearchBinary(file string) string {
+	// Check if it is absolute path of exists at current working directory.
+	if Exists(file) {
+		return file
+	}
+	return SearchBinaryPath(file)
+}
+
+// SearchBinaryPath searches the binary `file` in PATH environment.
+func SearchBinaryPath(file string) string {
+	array := ([]string)(nil)
+	switch runtime.GOOS {
+	case "windows":
+		envPath := os.Getenv("Path")
+		if strings.Contains(envPath, ";") {
+			array = SplitAndTrim(envPath, ";")
+		} else if strings.Contains(envPath, ":") {
+			array = SplitAndTrim(envPath, ":")
+		}
+		if Ext(file) != ".exe" {
+			file += ".exe"
+		}
+
+	default:
+		array = SplitAndTrim(os.Getenv("Path"), ":")
+	}
+	if len(array) > 0 {
+		path := ""
+		for _, v := range array {
+			path = v + string(filepath.Separator) + file
+			if Exists(path) && IsFile(path) {
+				return path
+			}
 		}
 	}
 	return ""
 }
 
-func Exists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil || os.IsExist(err)
-}
-
-func RealPath(path string) string {
-	if path == "" {
-		return ""
-	}
-
-	if path[0] != '~' {
-		path, _ = filepath.Abs(path)
-		return path
-	}
-
-	home, _ := os.UserHomeDir()
-	if len(path) > 1 {
-		return filepath.Join(home, path[1:])
-	}
-	return home
-}
-
-func GetBytes(size string, defaultSize int) int {
-	size = strings.ToUpper(strings.TrimSpace(size))
-	if size == "" {
-		return defaultSize
-	}
-
-	unit := size[len(size)-2:]
-	value := size[:len(size)-2]
-
-	var multiplier int
-	switch unit {
-	case "KB":
-		multiplier = 1024
-	case "MB":
-		multiplier = 1024 * 1024
-	case "GB":
-		multiplier = 1024 * 1024 * 1024
-	default:
-		return defaultSize
-	}
-
-	bytes := 0
-	_, err := fmt.Sscanf(value, "%d", &bytes)
+// Stat returns a FileInfo describing the named file.
+// If there is an error, it will be of type *PathError.
+func Stat(path string) (os.FileInfo, error) {
+	info, err := os.Stat(path)
 	if err != nil {
-		return defaultSize
+		err = errors.New(fmt.Sprintf(`os.Stat failed for file "%s"`, path))
 	}
-
-	return bytes * multiplier
+	return info, err
 }
 
-func SplitAndTrim(str, sep string) []string {
-	parts := strings.Split(str, sep)
-	result := make([]string, 0, len(parts))
-
-	for _, part := range parts {
-		if trimmed := strings.TrimSpace(part); trimmed != "" {
-			result = append(result, trimmed)
-		}
+// IsFile checks whether given `path` a file, which means it's not a directory.
+// Note that it returns false if the `path` does not exist.
+func IsFile(path string) bool {
+	s, err := Stat(path)
+	if err != nil {
+		return false
 	}
-
-	return result
+	return !s.IsDir()
 }
 
-func SetMap(m map[string]string) error {
-	for k, v := range m {
-		if err := os.Setenv(k, v); err != nil {
-			return err
-		}
+// Ext returns the file name extension used by path.
+// The extension is the suffix beginning at the final dot
+// in the final element of path; it is empty if there is
+// no dot.
+// Note: the result contains symbol '.'.
+//
+// Example:
+// Ext("main.go")  => .go
+// Ext("api.json") => .json
+func Ext(path string) string {
+	ext := filepath.Ext(path)
+	if p := strings.IndexByte(ext, '?'); p != -1 {
+		ext = ext[0:p]
 	}
-	return nil
-}
-
-func Map() map[string]string {
-	env := make(map[string]string)
-	for _, e := range os.Environ() {
-		if i := strings.Index(e, "="); i >= 0 {
-			env[e[:i]] = e[i+1:]
-		}
-	}
-	return env
-}
-
-func All() []string {
-	return os.Environ()
+	return ext
 }

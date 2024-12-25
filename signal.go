@@ -11,25 +11,25 @@ import (
 // Signal 向进程发送信号
 // sig: 要发送的信号
 // sigChildren: 如果为true，则信号会发送到该进程的子进程
-func (p *Process) Signal(sig os.Signal, sigChildren bool) error {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+func (that *Process) Signal(sig os.Signal, sigChildren bool) error {
+	that.lock.RLock()
+	defer that.lock.RUnlock()
 
-	return p.sendSignal(sig, sigChildren)
+	return that.sendSignal(sig, sigChildren)
 }
 
 // 发送多个信号到进程
 // sig: 要发送的信号列表
 // sigChildren: 如果为true，则信号会发送到该进程的子进程
-func (p *Process) sendSignals(sigs []string, sigChildren bool) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+func (that *Process) sendSignals(sigs []string, sigChildren bool) {
+	that.lock.RLock()
+	defer that.lock.RUnlock()
 
 	for _, strSig := range sigs {
 		sig := signals.ToSignal(strSig)
-		err := p.sendSignal(sig, sigChildren)
+		err := that.sendSignal(sig, sigChildren)
 		if err != nil {
-			slog.Infof("向进程[%s]发送信号[%s]失败,err:%v", p.GetName(), strSig, err)
+			slog.Info("向进程[%s]发送信号[%s]失败,err:%v", that.GetName(), strSig, err)
 		}
 	}
 }
@@ -37,10 +37,11 @@ func (p *Process) sendSignals(sigs []string, sigChildren bool) {
 // sendSignal 向进程发送信号
 // sig: 要发送的信号
 // sigChildren: 如果为true，则信号会发送到该进程的子进程
-func (p *Process) sendSignal(sig os.Signal, sigChildren bool) error {
-	if p.cmd != nil && p.cmd.Process != nil {
-		slog.Infof("发送信号[%s]到进程[%s]", sig, p.GetName())
-		return signals.Kill(p.cmd.Process, sig, sigChildren)
+func (that *Process) sendSignal(sig os.Signal, sigChildren bool) error {
+	if that.cmd != nil && that.cmd.Process != nil {
+		slog.Info("发送信号[%s]到进程[%s]", sig, that.GetName())
+		err := signals.Kill(that.cmd.Process, sig, sigChildren)
+		return err
 	}
-	return fmt.Errorf("进程[%s]没有启动", p.GetName())
+	return fmt.Errorf("进程[%s]没有启动", that.GetName())
 }

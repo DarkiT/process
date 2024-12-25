@@ -8,14 +8,14 @@ import (
 	"github.com/darkit/process/utils"
 )
 
-// AutoReStart 定义自动重启类型
-type AutoReStart int
-
 const (
 	AutoReStartUnexpected AutoReStart = iota
 	AutoReStartTrue       AutoReStart = iota // 1
 	AutoReStartFalse      AutoReStart = iota // 0
 )
+
+// AutoReStart 定义自动重启类型
+type AutoReStart uint8
 
 // ProcOptions 进程配置选项
 type ProcOptions struct {
@@ -55,23 +55,23 @@ type ProcOptions struct {
 type ProcOption func(*ProcOptions)
 
 // WithName 设置进程名称
-func WithName(name string) ProcOption {
-	return func(o *ProcOptions) {
-		o.Name = name
+func WithName(opt string) ProcOption {
+	return func(options *ProcOptions) {
+		options.Name = opt
 	}
 }
 
-// WithCommand 设置命令
-func WithCommand(cmd string) ProcOption {
-	return func(o *ProcOptions) {
-		o.Command = cmd
+// WithCommand 启动命令
+func WithCommand(opt string) ProcOption {
+	return func(options *ProcOptions) {
+		options.Command = opt
 	}
 }
 
-// WithArgs 设置参数
-func WithArgs(args []string) ProcOption {
-	return func(o *ProcOptions) {
-		o.Args = args
+// WithArgs 启动参数
+func WithArgs(opt ...string) ProcOption {
+	return func(options *ProcOptions) {
+		options.Args = opt
 	}
 }
 
@@ -182,7 +182,6 @@ func WithSetEnvironment(key, val string) ProcOption {
 	}
 }
 
-// WithEnvironment 设置环境变量
 func WithEnvironment(opt map[string]string) ProcOption {
 	return func(options *ProcOptions) {
 		options.Environment.Sets(opt)
@@ -244,20 +243,20 @@ func WithRedirectStderr(opt bool) ProcOption {
 // NewProcOptions 创建进程启动配置
 func NewProcOptions(opts ...ProcOption) ProcOptions {
 	proc := ProcOptions{
-		AutoStart:    true,
-		StartSecs:    1,
-		AutoReStart:  AutoReStartTrue,
-		StartRetries: 3,
-		RestartPause: 0,
-		StopWaitSecs: 10,
-		KillWaitSecs: 2,
-		// User:                     "root",
+		AutoStart:                true,
+		StartSecs:                1,
+		AutoReStart:              AutoReStartTrue,
+		StartRetries:             3,
+		RestartPause:             0,
+		StopWaitSecs:             10,
+		KillWaitSecs:             2,
 		Priority:                 999,
 		StopAsGroup:              false,
 		KillAsGroup:              false,
 		RestartWhenBinaryChanged: false,
-		Extend:                   utils.NewAnyAnyMap(),
-		Environment:              utils.NewStrStrMap(),
+		Extend:                   utils.NewAnyAnyMap(true),
+		Environment:              utils.NewStrStrMap(true),
+		// User:                     "root",
 
 		StdoutLogfile:         "",
 		StdoutLogFileMaxBytes: 50 * 1024 * 1024,
@@ -274,16 +273,14 @@ func NewProcOptions(opts ...ProcOption) ProcOptions {
 }
 
 // CreateCommand 根据就配置生成cmd对象
-func (o ProcOptions) CreateCommand() (*exec.Cmd, error) {
-	if len(o.Name) <= 0 {
-		o.Name = o.Command
+func (that ProcOptions) CreateCommand() (*exec.Cmd, error) {
+	if len(that.Name) <= 0 {
+		that.Name = that.Command
 	}
-
-	cmd := exec.Command(o.Command)
-	if len(o.Args) > 0 {
-		cmd.Args = append([]string{o.Command}, o.Args...)
+	cmd := exec.Command(that.Command)
+	if len(that.Args) > 0 {
+		cmd.Args = append([]string{that.Command}, that.Args...)
 	}
-
 	cmd.SysProcAttr = &syscall.SysProcAttr{}
 	return cmd, nil
 }

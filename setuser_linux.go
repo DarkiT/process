@@ -1,4 +1,5 @@
-//go:build linux
+//go:build !windows && !darwin
+// +build !windows,!darwin
 
 package process
 
@@ -9,34 +10,32 @@ import (
 	"syscall"
 )
 
-func (p *Process) setUser() error {
-	userName := p.option.User
+// 设置进程的运行用户
+func (that *Process) setUser() error {
+	userName := that.option.User
 	if len(userName) == 0 {
 		return nil
 	}
 
+	// check if group is provided
 	pos := strings.Index(userName, ":")
 	groupName := ""
 	if pos != -1 {
 		groupName = userName[pos+1:]
 		userName = userName[0:pos]
 	}
-
 	u, err := user.Lookup(userName)
 	if err != nil {
 		return err
 	}
-
 	uid, err := strconv.ParseUint(u.Uid, 10, 32)
 	if err != nil {
 		return err
 	}
-
 	gid, err := strconv.ParseUint(u.Gid, 10, 32)
 	if err != nil && groupName == "" {
 		return err
 	}
-
 	if groupName != "" {
 		g, err := user.LookupGroup(groupName)
 		if err != nil {
@@ -47,11 +46,6 @@ func (p *Process) setUser() error {
 			return err
 		}
 	}
-
-	p.cmd.SysProcAttr.Credential = &syscall.Credential{
-		Uid:         uint32(uid),
-		Gid:         uint32(gid),
-		NoSetGroups: true,
-	}
+	that.cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid), NoSetGroups: true}
 	return nil
 }

@@ -1,7 +1,9 @@
 //go:build darwin
+// +build darwin
 
 package process
 
-func (p *Process) setUser() error {
+// 设置进程的运行用户
+func (that *Process) setUser() error {
 	return nil
 }
