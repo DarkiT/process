@@ -272,7 +272,7 @@ func (that *Process) run(finishCb func()) {
 		if err != nil {
 			// 重试次数已经大于设置中的最大重试次数
 			if atomic.LoadInt32(that.retryTimes) >= int32(that.option.StartRetries) {
-				that.Manager.logger.Errorf("程序[%s]重试次数已经达到最大重试次数 %v", that.option.Name, err)
+				that.Manager.logger.Errorf("程序[%s]重启次数已经达到最大限限额 %v", that.option.Name, err)
 				that.failToStartProgram(finishCbWrapper)
 				break
 			} else {
