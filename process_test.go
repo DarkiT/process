@@ -50,8 +50,8 @@ func TestProcessStart(t *testing.T) {
 	// 创建一个简单的测试进程（使用 echo 命令）
 	proc := NewProcess(
 		WithName("echo-test"),
-		WithCommand("echo"),
-		WithArgs("hello"),
+		WithCommand("tail"),
+		WithArgs("-f", "/dev/null"),
 		WithAutoStart(true),
 	)
 
