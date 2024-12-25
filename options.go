@@ -2,8 +2,6 @@ package process
 
 import (
 	"os"
-	"os/exec"
-	"syscall"
 
 	"github.com/darkit/process/utils"
 )
@@ -269,17 +267,4 @@ func NewOptions(opts ...WithOption) Options {
 		opt(&proc)
 	}
 	return proc
-}
-
-// CreateCommand 根据就配置生成cmd对象
-func (that Options) CreateCommand() (*exec.Cmd, error) {
-	if len(that.Name) <= 0 {
-		that.Name = that.Command
-	}
-	cmd := exec.Command(that.Command)
-	if len(that.Args) > 0 {
-		cmd.Args = append([]string{that.Command}, that.Args...)
-	}
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
-	return cmd, nil
 }

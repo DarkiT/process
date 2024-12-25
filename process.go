@@ -551,6 +551,19 @@ func (that *Process) setProgramRestartChangeMonitor(programPath string) error {
 	return nil
 }
 
+// CreateCommand 根据就配置生成cmd对象
+func (that *Options) CreateCommand() (*exec.Cmd, error) {
+	if len(that.Name) <= 0 {
+		that.Name = that.Command
+	}
+	cmd := exec.Command(that.Command)
+	if len(that.Args) > 0 {
+		cmd.Args = append([]string{that.Command}, that.Args...)
+	}
+	cmd.SysProcAttr = &syscall.SysProcAttr{}
+	return cmd, nil
+}
+
 func (that *Process) checkState() bool {
 	that.lock.RLock()
 	defer that.lock.RUnlock()
