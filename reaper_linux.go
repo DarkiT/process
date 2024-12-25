@@ -14,8 +14,6 @@ type Config struct {
 	DisablePid1Check bool
 }
 
-var debug bool = false
-
 func sigChildHandler(notifications chan os.Signal) {
 	sigs := make(chan os.Signal, 3)
 	signal.Notify(sigs, syscall.SIGCHLD)

@@ -71,9 +71,9 @@ func NewProcessByOptions(options ProcOptions) *Process {
 // NewProcessCmd 按命令启动
 func NewProcessCmd(cmd string, environment map[string]string) *Process {
 	return NewProcess(
-		ProcCommand(getShell()),
-		ProcArgs(append([]string{getShellOption()}, parseCommand(cmd)...)...),
-		ProcEnvironment(environment),
+		WithCommand(getShell()),
+		WithArgs(append([]string{getShellOption()}, parseCommand(cmd)...)),
+		WithEnvironment(environment),
 	)
 }
 
@@ -468,4 +468,9 @@ func (p *Process) Clone() (*Process, error) {
 		return nil, err
 	}
 	return proc, nil
+}
+
+// 更改进程的运行状态
+func (p *Process) changeStateTo(procState State) {
+	p.state = procState
 }

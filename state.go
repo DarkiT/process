@@ -36,8 +36,3 @@ func (p State) String() string {
 		return "Unknown"
 	}
 }
-
-// 更改进程的运行状态
-func (p *Process) changeStateTo(procState State) {
-	p.state = procState
-}
