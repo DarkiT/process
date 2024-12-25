@@ -82,7 +82,7 @@ func (that *Process) Start(wait bool) {
 
 	that.lock.Lock()
 	if that.inStart {
-		slog.Info("不成重复启动该进程[%s],因为该进程已经启动！", that.option.Name)
+		slog.Info("不能重复启动该进程[%s],因为该进程已经启动！", that.option.Name)
 		that.lock.Unlock()
 		return
 	}
