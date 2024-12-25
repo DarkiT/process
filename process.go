@@ -263,7 +263,8 @@ func (that *Process) run(finishCb func()) {
 		// 创建启动命令行
 		err := that.createProgramCommand()
 		if err != nil {
-			that.failToStartProgram(fmt.Errorf("不能创建进程 %v", err), finishCbWrapper)
+			that.Manager.logger.Errorf("程序[%s]不能创建进程 %v", that.option.Name, err)
+			that.failToStartProgram(finishCbWrapper)
 			break
 		}
 		// 启动程序
@@ -271,7 +272,8 @@ func (that *Process) run(finishCb func()) {
 		if err != nil {
 			// 重试次数已经大于设置中的最大重试次数
 			if atomic.LoadInt32(that.retryTimes) >= int32(that.option.StartRetries) {
-				that.failToStartProgram(fmt.Errorf("重试次数已经达到最大重试次数 %v", err), finishCbWrapper)
+				that.Manager.logger.Errorf("程序[%s]重试次数已经达到最大重试次数 %v", that.option.Name, err)
+				that.failToStartProgram(finishCbWrapper)
 				break
 			} else {
 				// 启动失败，再次重试
@@ -327,7 +329,8 @@ func (that *Process) run(finishCb func()) {
 		}
 		// 如果重试次数已经超过了设置的最大重试次数
 		if atomic.LoadInt32(that.retryTimes) >= int32(that.option.StartRetries) {
-			that.failToStartProgram(fmt.Errorf("不能启动程序[%s],因为已经超出了它的最大重试值:%d", that.option.Name, that.option.StartRetries), finishCbWrapper)
+			that.Manager.logger.Errorf("不能启动程序[%s],因为已经超出了它的最大重试值: %d", that.option.Name, that.option.StartRetries)
+			that.failToStartProgram(finishCbWrapper)
 			break
 		}
 	}
@@ -414,8 +417,7 @@ func (that *Process) setLog() {
 }
 
 // 设置程序启动失败状态
-func (that *Process) failToStartProgram(err error, finishCb func()) {
-	that.Manager.logger.Errorf("程序[%s]启动失败: %v", that.option.Name, err)
+func (that *Process) failToStartProgram(finishCb func()) {
 	that.changeStateTo(Fatal)
 	finishCb()
 }
