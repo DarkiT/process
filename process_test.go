@@ -53,6 +53,7 @@ func TestProcessStart(t *testing.T) {
 		WithCommand("tail"),
 		WithArgs("-f", "/dev/null"),
 		WithAutoStart(true),
+		WithAutoReStart(AutoReStartFalse),
 	)
 
 	// 启动进程并等待
@@ -62,6 +63,7 @@ func TestProcessStart(t *testing.T) {
 	if proc.state != Exited && proc.state != Running {
 		t.Errorf("期望进程状态为 Exited 或 Running, 实际为 %v", proc.state)
 	}
+	proc.Stop(true)
 }
 
 // TestProcessStop 测试进程停止功能
@@ -118,6 +120,7 @@ func TestProcessWithEnvironment(t *testing.T) {
 	proc := NewProcess(
 		WithName("env-test"),
 		WithEnvironment(env),
+		WithAutoReStart(AutoReStartFalse),
 	)
 
 	if proc.option.Environment.Get("TEST_VAR") != "test_value" {
@@ -132,6 +135,7 @@ func TestProcessClone(t *testing.T) {
 		WithName("original"),
 		WithCommand("echo"),
 		WithArgs("test"),
+		WithAutoReStart(AutoReStartFalse),
 	)
 
 	// 克隆进程
