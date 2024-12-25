@@ -54,7 +54,6 @@ func reapChildren(config Config) {
 	opts := config.Options
 
 	for {
-		sig := <-notifications
 		for {
 			var wstatus syscall.WaitStatus
 
