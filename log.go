@@ -3,6 +3,7 @@ package process
 import (
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/darkit/process/proclog"
 )
@@ -57,7 +58,11 @@ func (that *Process) createStdoutLogger() proclog.Logger {
 	maxBytes := int64(that.option.StdoutLogFileMaxBytes)
 	backups := that.option.StdoutLogFileBackups
 
-	props := make(map[string]string)
+	props := map[string]string{
+		"process": that.GetName(),
+		"type":    "stdout",
+		"pid":     strconv.Itoa(that.Pid()),
+	}
 
 	return proclog.NewLogger(that.GetName(), logFile, proclog.NewNullLocker(), maxBytes, backups, props)
 }
@@ -68,7 +73,11 @@ func (that *Process) createStderrLogger() proclog.Logger {
 	maxBytes := int64(that.option.StderrLogFileMaxBytes)
 	backups := that.option.StderrLogFileBackups
 
-	props := make(map[string]string)
+	props := map[string]string{
+		"process": that.GetName(),
+		"type":    "stderr",
+		"pid":     strconv.Itoa(that.Pid()),
+	}
 
 	return proclog.NewLogger(that.GetName(), logFile, proclog.NewNullLocker(), maxBytes, backups, props)
 }
