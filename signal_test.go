@@ -18,7 +18,7 @@ func TestProcessSignalHandling(t *testing.T) {
 	proc, err := manager.NewProcess(
 		WithName("test-signal"),
 		WithCommand("sleep"),
-		WithArgs([]string{"30"}),
+		WithArgs("30"),
 	)
 	if err != nil {
 		t.Fatalf("创建进程失败: %v", err)
@@ -63,7 +63,7 @@ func TestProcessSignalHandling(t *testing.T) {
 		proc, err := manager.NewProcess(
 			WithName("test-group-signal"),
 			WithCommand("bash"),
-			WithArgs([]string{"-c", "sleep 30 & sleep 30"}),
+			WithArgs("-c", "sleep 30 & sleep 30"),
 		)
 		if err != nil {
 			t.Fatalf("创建进程组测试进程失败: %v", err)
@@ -114,7 +114,7 @@ func TestInvalidSignalHandling(t *testing.T) {
 	proc := NewProcess(
 		WithName("test-invalid-signal"),
 		WithCommand("sleep"),
-		WithArgs([]string{"1"}),
+		WithArgs("1"),
 	)
 
 	// 测试向未启动的进程发送信号
@@ -140,7 +140,7 @@ func TestSendSignals(t *testing.T) {
 	proc, err := manager.NewProcess(
 		WithName("test-multiple-signals"),
 		WithCommand("sleep"),
-		WithArgs([]string{"30"}),
+		WithArgs("30"),
 	)
 	if err != nil {
 		t.Fatalf("创建进程失败: %v", err)
@@ -166,7 +166,7 @@ func TestSignalWithLock(t *testing.T) {
 	proc, err := manager.NewProcess(
 		WithName("test-signal-lock"),
 		WithCommand("sleep"),
-		WithArgs([]string{"30"}),
+		WithArgs("30"),
 	)
 	if err != nil {
 		t.Fatalf("创建进程失败: %v", err)
@@ -203,7 +203,7 @@ func TestSignalToStoppedProcess(t *testing.T) {
 	proc, err := manager.NewProcess(
 		WithName("test-stopped-process"),
 		WithCommand("sleep"),
-		WithArgs([]string{"1"}),
+		WithArgs("1"),
 	)
 	if err != nil {
 		t.Fatalf("创建进程失败: %v", err)
@@ -226,7 +226,7 @@ func TestSignalWithChildren(t *testing.T) {
 	proc, err := manager.NewProcess(
 		WithName("test-children"),
 		WithCommand("bash"),
-		WithArgs([]string{"-c", "sleep 30 & sleep 30 & sleep 30"}),
+		WithArgs("-c", "sleep 30 & sleep 30 & sleep 30"),
 	)
 	if err != nil {
 		t.Fatalf("创建进程失败: %v", err)

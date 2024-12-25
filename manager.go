@@ -19,8 +19,9 @@ func NewManager() *Manager {
 }
 
 // NewProcess 创建新的进程实例
-func (m *Manager) NewProcess(opts ...ProcOption) (*Process, error) {
-	options := NewProcOptions(opts...)
+// opts: 配置对象
+func (m *Manager) NewProcess(opts ...WithOption) (*Process, error) {
+	options := NewOptions(opts...)
 
 	if len(options.Name) == 0 {
 		options.Name = options.Command
@@ -44,8 +45,8 @@ func (m *Manager) NewProcess(opts ...ProcOption) (*Process, error) {
 }
 
 // NewProcessByOptions 创建进程
-// entry: 配置对象
-func (m *Manager) NewProcessByOptions(opts ProcOptions) (*Process, error) {
+// opts: 配置对象
+func (m *Manager) NewProcessByOptions(opts Options) (*Process, error) {
 	if _, exists := m.processes.Load(opts.Name); exists {
 		return nil, fmt.Errorf("进程[%s]已存在", opts.Name)
 	}

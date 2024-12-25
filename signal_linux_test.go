@@ -15,7 +15,7 @@ func TestLinuxSpecificSignals(t *testing.T) {
 	proc, err := manager.NewProcess(
 		WithName("test-linux-signals"),
 		WithCommand("sleep"),
-		WithArgs([]string{"30"}),
+		WithArgs("30"),
 	)
 	if err != nil {
 		t.Fatalf("创建进程失败: %v", err)

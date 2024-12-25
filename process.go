@@ -19,9 +19,9 @@ import (
 )
 
 type Process struct {
-	Manager *Manager    // 进程管理对象
-	option  ProcOptions // 进程配置
-	cmd     *exec.Cmd   // 进程对象
+	Manager *Manager  // 进程管理对象
+	option  Options   // 进程配置
+	cmd     *exec.Cmd // 进程对象
 
 	startTime   time.Time // 启动时间
 	stopTime    time.Time // 停止时间
@@ -39,8 +39,8 @@ type Process struct {
 }
 
 // NewProcess 创建进程对象
-func NewProcess(opts ...ProcOption) *Process {
-	options := NewProcOptions()
+func NewProcess(opts ...WithOption) *Process {
+	options := NewOptions()
 	options.Environment.Sets(utils.Map())
 	dir, _ := os.Getwd()
 	options.Directory = dir
@@ -51,7 +51,7 @@ func NewProcess(opts ...ProcOption) *Process {
 }
 
 // NewProcessByOptions 通过详细配置，创建进程对象
-func NewProcessByOptions(options ProcOptions) *Process {
+func NewProcessByOptions(options Options) *Process {
 	var t time.Time
 	proc := &Process{
 		Manager:    nil,

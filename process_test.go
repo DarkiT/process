@@ -32,7 +32,7 @@ func TestNewProcessWithOptions(t *testing.T) {
 	proc := NewProcess(
 		WithName("test-process"),
 		WithCommand("echo"),
-		WithArgs([]string{"hello"}),
+		WithArgs("hello"),
 	)
 
 	if proc.option.Name != "test-process" {
@@ -50,7 +50,7 @@ func TestProcessStart(t *testing.T) {
 	proc := NewProcess(
 		WithName("echo-test"),
 		WithCommand("echo"),
-		WithArgs([]string{"hello"}),
+		WithArgs("hello"),
 		WithAutoStart(true),
 	)
 
@@ -69,7 +69,7 @@ func TestProcessStop(t *testing.T) {
 	proc := NewProcess(
 		WithName("sleep-test"),
 		WithCommand("sleep"),
-		WithArgs([]string{"5"}),
+		WithArgs("5"),
 	)
 
 	// 启动进程
@@ -90,7 +90,7 @@ func TestProcessAutoRestart(t *testing.T) {
 	proc := NewProcess(
 		WithName("restart-test"),
 		WithCommand("echo"),
-		WithArgs([]string{"test"}),
+		WithArgs("test"),
 		WithAutoReStart(AutoReStartTrue),
 	)
 
@@ -129,7 +129,7 @@ func TestProcessClone(t *testing.T) {
 	original := NewProcess(
 		WithName("original"),
 		WithCommand("echo"),
-		WithArgs([]string{"test"}),
+		WithArgs("test"),
 	)
 
 	// 克隆进程

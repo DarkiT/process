@@ -22,7 +22,7 @@ func TestNewProcess(t *testing.T) {
 	proc1, err := manager.NewProcess(
 		WithName("test-proc"),
 		WithCommand("echo"),
-		WithArgs([]string{"hello"}),
+		WithArgs("hello"),
 	)
 	if err != nil {
 		t.Errorf("创建进程失败: %v", err)
@@ -72,7 +72,7 @@ func TestStartStopProcess(t *testing.T) {
 	_, err := manager.NewProcess(
 		WithName("test-proc"),
 		WithCommand("echo"),
-		WithArgs([]string{"hello"}),
+		WithArgs("hello"),
 	)
 	if err != nil {
 		t.Errorf("创建进程失败: %v", err)
@@ -135,7 +135,7 @@ func TestGracefulReload(t *testing.T) {
 	_, err := manager.NewProcess(
 		WithName("reload-test"),
 		WithCommand("echo"),
-		WithArgs([]string{"hello"}),
+		WithArgs("hello"),
 	)
 	if err != nil {
 		t.Errorf("创建进程失败: %v", err)

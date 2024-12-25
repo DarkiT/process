@@ -15,7 +15,7 @@ func TestWindowsSpecificSignals(t *testing.T) {
 	proc, err := manager.NewProcess(
 		WithName("test-windows-signals"),
 		WithCommand("timeout"),
-		WithArgs([]string{"/t", "30"}),
+		WithArgs("/t", "30"),
 	)
 	if err != nil {
 		t.Fatalf("创建进程失败: %v", err)
