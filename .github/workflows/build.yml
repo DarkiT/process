@@ -27,9 +27,6 @@ jobs:
     - name: Vet
       run: go vet ./...
 
-    - name: Test
-      run: go test -v ./...
-
   test:
     name: Test with Coverage
     runs-on: ubuntu-latest

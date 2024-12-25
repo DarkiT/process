@@ -29,7 +29,7 @@ func main() {
 
 	go func() {
 		sig := <-sigChan
-		slog.Info("Received signal: %v", sig)
+		slog.Info("Received signal", slog.Any("sigChan", sig))
 		cancel()
 	}()
 
