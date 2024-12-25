@@ -227,6 +227,7 @@ func TestSignalWithChildren(t *testing.T) {
 		WithName("test-children"),
 		WithCommand("bash"),
 		WithArgs("-c", "sleep 30 & sleep 30 & sleep 30"),
+		WithAutoReStart(AutoReStartFalse),
 	)
 	if err != nil {
 		t.Fatalf("创建进程失败: %v", err)

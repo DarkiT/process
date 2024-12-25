@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// TestWindowsSpecificSignals 测试 Windows 特定的信号处理
-func TestWindowsSpecificSignals(t *testing.T) {
+// TestLinuxOnlySignals 测试 Windows 特定的信号处理
+func TestLinuxOnlySignals(t *testing.T) {
 	manager := NewManager()
 	proc, err := manager.NewProcess(
 		WithName("test-windows-signals"),
