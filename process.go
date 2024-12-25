@@ -99,7 +99,6 @@ func (that *Process) Start(wait bool) {
 	go func() {
 		for {
 			that.run(func() {
-				// 该函数的含义是，如果设置了阻塞等待，则表示需要在运行结束后发送信号该runCond
 				if wait {
 					runCond.L.Lock()
 					runCond.Signal()
@@ -275,7 +274,7 @@ func (that *Process) run(finishCb func()) {
 		// 创建启动命令行
 		err := that.createProgramCommand()
 		if err != nil {
-			that.failToStartProgram(fmt.Sprintf("不能创建进程,err:%v", err), finishCbWrapper)
+			that.failToStartProgram(fmt.Errorf("不能创建进程,error: %v", err), finishCbWrapper)
 			break
 		}
 		// 启动程序
@@ -283,7 +282,7 @@ func (that *Process) run(finishCb func()) {
 		if err != nil {
 			// 重试次数已经大于设置中的最大重试次数
 			if atomic.LoadInt32(that.retryTimes) >= int32(that.option.StartRetries) {
-				that.failToStartProgram(fmt.Sprintf("error:%v", err), finishCbWrapper)
+				that.failToStartProgram(fmt.Errorf("重试次数已经达到最大重试次数 error: %v", err), finishCbWrapper)
 				break
 			} else {
 				// 启动失败，再次重试
@@ -339,7 +338,7 @@ func (that *Process) run(finishCb func()) {
 		}
 		// 如果重试次数已经超过了设置的最大重试次数
 		if atomic.LoadInt32(that.retryTimes) >= int32(that.option.StartRetries) {
-			that.failToStartProgram(fmt.Sprintf("不能启动程序[%s],因为已经超出了它的最大重试值:%d", that.option.Name, that.option.StartRetries), finishCbWrapper)
+			that.failToStartProgram(fmt.Errorf("不能启动程序[%s],因为已经超出了它的最大重试值:%d", that.option.Name, that.option.StartRetries), finishCbWrapper)
 			break
 		}
 	}
@@ -426,8 +425,8 @@ func (that *Process) setLog() {
 }
 
 // 设置程序启动失败状态
-func (that *Process) failToStartProgram(reason string, finishCb func()) {
-	slog.Error("程序[%s]启动失败，失败原因：%s ", that.option.Name, reason)
+func (that *Process) failToStartProgram(err error, finishCb func()) {
+	slog.WithValue("error", err).Error("程序[%s]启动失败", that.option.Name)
 	that.changeStateTo(Fatal)
 	finishCb()
 }

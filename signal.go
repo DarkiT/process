@@ -29,7 +29,7 @@ func (that *Process) sendSignals(sigs []string, sigChildren bool) {
 		sig := signals.ToSignal(strSig)
 		err := that.sendSignal(sig, sigChildren)
 		if err != nil {
-			slog.Info("向进程[%s]发送信号[%s]失败,err:%v", that.GetName(), strSig, err)
+			slog.WithValue("error", err).Info("向进程[%s]发送信号[%s]失败", that.GetName(), strSig)
 		}
 	}
 }
