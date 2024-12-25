@@ -23,12 +23,12 @@ func main() {
 
 	for _, p := range processes {
 		proc, err := manager.NewProcess(
-			process.ProcName(p.name),
-			process.ProcCommand(p.command),
-			process.ProcArgs(p.args...),
-			process.ProcAutoReStart(process.AutoReStartTrue),
-			process.ProcStdoutLog("logs/"+p.name+".log", "50MB"),
-			process.ProcStderrLog("logs/"+p.name+".err", "50MB"),
+			process.WithName(p.name),
+			process.WithCommand(p.command),
+			process.WithArgs(p.args),
+			process.WithAutoReStart(process.AutoReStartTrue),
+			process.WithStdoutLog("logs/"+p.name+".log", "50MB"),
+			process.WithStderrLog("logs/"+p.name+".err", "50MB"),
 		)
 		if err != nil {
 			slog.Fatalf("Failed to create process %s: %v", p.name, err)

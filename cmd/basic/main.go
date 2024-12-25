@@ -12,11 +12,11 @@ func main() {
 
 	// Create a long-running process
 	proc, err := manager.NewProcess(
-		process.ProcName("test-process"),
-		process.ProcCommand("sleep"),
-		process.ProcArgs("infinity"),
-		process.ProcAutoReStart(process.AutoReStartTrue),
-		process.ProcStdoutLog("logs/test.log", "50MB"),
+		process.WithName("test-process"),
+		process.WithCommand("sleep"),
+		process.WithArgs([]string{"infinity"}),
+		process.WithAutoReStart(process.AutoReStartTrue),
+		process.WithStdoutLog("logs/test.log", "50MB"),
 	)
 	if err != nil {
 		slog.Fatal(err.Error())
