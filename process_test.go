@@ -2,6 +2,7 @@ package process
 
 import (
 	"os"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -59,7 +60,7 @@ func TestProcessStart(t *testing.T) {
 
 	// 检查进程状态
 	if proc.state != Exited && proc.state != Running {
-		t.Errorf("期望进程状态为 Exited 或 Running，实际为 %v", proc.state)
+		t.Errorf("期望进程状态为 Exited 或 Running, 实际为 %v", proc.state)
 	}
 }
 
@@ -70,17 +71,18 @@ func TestProcessStop(t *testing.T) {
 		WithName("sleep-test"),
 		WithCommand("sleep"),
 		WithArgs("5"),
+		WithAutoReStart(AutoReStartFalse),
 	)
 
 	// 启动进程
-	proc.Start(true)
+	proc.Start(false)
 
 	// 停止进程
 	proc.Stop(true)
 
 	// 检查进程状态
 	if proc.state != Stopped && proc.state != Exited {
-		t.Errorf("期望进程状态为 Stopped 或 Exited，实际为 %v", proc.state)
+		t.Errorf("期望进程状态为 Stopped 或 Exited, 实际为 %v", proc.state)
 	}
 }
 
@@ -146,4 +148,63 @@ func TestProcessClone(t *testing.T) {
 	if cloned.option.Command != original.option.Command {
 		t.Error("克隆的进程命令与原始进程不匹配")
 	}
+}
+
+// TestProcessStopBasic 测试进程停止功能
+func TestProcessStopBasic(t *testing.T) {
+	// 设置测试超时
+	if testing.Short() {
+		t.Skip("跳过长时间运行的测试")
+	}
+
+	// 创建一个长期运行的测试进程
+	proc := NewProcess(
+		WithName("stop-test"),
+		// 在 Windows 上使用 timeout 命令替代 sleep
+		WithCommand(getTestCommand()),
+		WithArgs(getTestArgs()...),
+		WithAutoReStart(AutoReStartFalse), // 禁用自动重启
+	)
+
+	// 启动进程
+	proc.Start(false)
+
+	// 等待进程启动
+	time.Sleep(2 * time.Second)
+
+	// 停止进程，设置超时
+	done := make(chan struct{})
+	go func() {
+		proc.Stop(true)
+		close(done)
+	}()
+
+	// 等待进程停止或超时
+	select {
+	case <-done:
+		// 进程正常停止
+	case <-time.After(30 * time.Second):
+		t.Fatal("停止进程超时")
+	}
+
+	// 验证进程状态
+	if proc.state != Stopped && proc.state != Exited {
+		t.Errorf("期望进程状态为 Stopped 或 Exited, 实际为 %v", proc.state)
+	}
+}
+
+// getTestCommand 根据操作系统返回合适的测试命令
+func getTestCommand() string {
+	if runtime.GOOS == "windows" {
+		return "timeout"
+	}
+	return "sleep"
+}
+
+// getTestArgs 根据操作系统返回合适的命令参数
+func getTestArgs() []string {
+	if runtime.GOOS == "windows" {
+		return []string{"/t", "5"}
+	}
+	return []string{"5"}
 }
