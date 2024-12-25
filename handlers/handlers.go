@@ -94,16 +94,16 @@ func (h *ProcessHandler[T]) CreateProcess() T {
 		}
 
 		proc := process.NewProcess(
-			process.ProcName(req.Name),
-			process.ProcCommand(req.Command),
-			process.ProcArgs(args...),
-			process.ProcDirectory(req.Directory),
-			process.ProcUser(req.User),
-			process.ProcEnvironment(env),
-			process.ProcAutoStart(req.AutoStart),
-			process.ProcAutoReStart(process.AutoReStart(req.AutoRestart)),
-			process.ProcStdoutLog(req.StdoutLogfile, "50MB", 10),
-			process.ProcStderrLog(req.StderrLogfile, "50MB", 10),
+			process.WithName(req.Name),
+			process.WithCommand(req.Command),
+			process.WithArgs(args),
+			process.WithDirectory(req.Directory),
+			process.WithUser(req.User),
+			process.WithEnvironment(env),
+			process.WithAutoStart(req.AutoStart),
+			process.WithAutoReStart(process.AutoReStart(req.AutoRestart)),
+			process.WithStdoutLog(req.StdoutLogfile, "50MB", 10),
+			process.WithStderrLog(req.StderrLogfile, "50MB", 10),
 		)
 
 		proc, err := h.manager.NewProcessByProcess(proc)
