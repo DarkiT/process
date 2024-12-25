@@ -229,6 +229,9 @@ func TestSignalToStoppedProcess(t *testing.T) {
 
 // TestSignalWithChildrenGroup 测试子进程信号处理
 func TestSignalWithChildrenGroup(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping on Windows")
+	}
 	// 创建一个会启动子进程的测试脚本
 	scriptContent := `#!/bin/sh
 	child_pid=""
